@@ -1,0 +1,119 @@
+spring:
+  application:
+    name: gaime-bridge
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/gaime_bridge}
+    username: ${DB_USERNAME:gaime_bridge}
+    password: ${DB_PASSWORD:gaime_bridge}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+        format_sql: true
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+  jackson:
+    default-property-inclusion: non_null
+
+server:
+  servlet:
+    context-path: /
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+
+app:
+  demo:
+    enabled: ${APP_DEMO_ENABLED:false}
+  security:
+    api-username: ${API_USERNAME}
+    api-password: ${API_PASSWORD}
+  exports:
+    base-dir: ${EXPORT_BASE_DIR:./exports}
+  tax-portal:
+    browser:
+      enabled: ${TAX_PORTAL_BROWSER_ENABLED:false}
+      browser:
+        headless: ${TAX_PORTAL_HEADLESS:true}
+        base-url: ${TAX_PORTAL_BASE_URL:https://new.e-taxes.gov.az}
+        timeout: 30s
+        navigation-timeout: 45s
+        slow-mo-ms: 0
+        user-agent: gaime-bridge-parser
+      login:
+        url: ${TAX_PORTAL_LOGIN_URL:/}
+        username: ${TAX_PORTAL_USERNAME:}
+        password: ${TAX_PORTAL_PASSWORD:}
+        username-selector: ${TAX_PORTAL_USERNAME_SELECTOR:}
+        password-selector: ${TAX_PORTAL_PASSWORD_SELECTOR:}
+        submit-selector: ${TAX_PORTAL_SUBMIT_SELECTOR:}
+        success-selector: ${TAX_PORTAL_SUCCESS_SELECTOR:}
+        verification-url: ${TAX_PORTAL_VERIFICATION_URL:}
+        verification-pending-selector: ${TAX_PORTAL_VERIFICATION_PENDING_SELECTOR:}
+        verification-start-path: ${TAX_PORTAL_VERIFICATION_START_PATH:}
+        verification-status-path: ${TAX_PORTAL_VERIFICATION_STATUS_PATH:}
+        certificates-path: ${TAX_PORTAL_CERTIFICATES_PATH:}
+        choose-taxpayer-path: ${TAX_PORTAL_CHOOSE_TAXPAYER_PATH:}
+        owner-type: ${TAX_PORTAL_OWNER_TYPE:legal}
+        legal-tin: ${TAX_PORTAL_LEGAL_TIN:}
+        poll-interval: ${TAX_PORTAL_POLL_INTERVAL:2s}
+        verification-timeout: ${TAX_PORTAL_VERIFICATION_TIMEOUT:3m}
+        home-url: ${TAX_PORTAL_HOME_URL:}
+        home-success-selector: ${TAX_PORTAL_HOME_SUCCESS_SELECTOR:}
+      api:
+        source-system: ${TAX_PORTAL_SOURCE_SYSTEM:avis}
+        inbox-path: ${TAX_PORTAL_INBOX_PATH:/api/po/invoice/public/v2/invoice/find.inbox}
+        outbox-path: ${TAX_PORTAL_OUTBOX_PATH:/api/po/invoice/public/v2/invoice/find.outbox}
+        draft-path: ${TAX_PORTAL_DRAFT_PATH:/api/po/invoice/public/v2/invoice/find.draft}
+        detail-path-template: '${TAX_PORTAL_DETAIL_PATH_TEMPLATE:/api/po/invoice/public/v2/invoice/{id}?sourceSystem={sourceSystem}}'
+        versions-path-template: '${TAX_PORTAL_VERSIONS_PATH_TEMPLATE:/api/po/invoice/public/v2/invoice/{id}/versions?sourceSystem={sourceSystem}}'
+        history-path-template: '${TAX_PORTAL_HISTORY_PATH_TEMPLATE:/api/po/invoice/public/v2/invoice/{id}/history?sourceSystem={sourceSystem}}'
+        tree-path-template: '${TAX_PORTAL_TREE_PATH_TEMPLATE:/api/po/invoice/public/v2/invoice/{id}/tree?sourceSystem={sourceSystem}}'
+        parent-histories-path-template: '${TAX_PORTAL_PARENT_HISTORIES_PATH_TEMPLATE:/api/po/invoice/public/v2/invoice/{serialNumber}/parent-histories?sourceSystem={sourceSystem}}'
+        inbox-payload-template: '${TAX_PORTAL_INBOX_PAYLOAD_TEMPLATE:{"page":{{page}},"year":{{year}}}}'
+        outbox-payload-template: '${TAX_PORTAL_OUTBOX_PAYLOAD_TEMPLATE:{"page":{{page}},"year":{{year}}}}'
+        draft-payload-template: '${TAX_PORTAL_DRAFT_PAYLOAD_TEMPLATE:{"page":{{page}},"year":{{year}}}}'
+      list:
+        url: ${TAX_PORTAL_LIST_URL:/}
+        container-selector: ${TAX_PORTAL_LIST_CONTAINER_SELECTOR:}
+        item-selector: ${TAX_PORTAL_LIST_ITEM_SELECTOR:}
+        next-page-selector: ${TAX_PORTAL_NEXT_PAGE_SELECTOR:}
+        counterparty-name-selector: ${TAX_PORTAL_COUNTERPARTY_NAME_SELECTOR:}
+        counterparty-tax-id-selector: ${TAX_PORTAL_COUNTERPARTY_TAX_ID_SELECTOR:}
+        date-selector: ${TAX_PORTAL_DATE_SELECTOR:}
+        status-selector: ${TAX_PORTAL_STATUS_SELECTOR:}
+        series-selector: ${TAX_PORTAL_SERIES_SELECTOR:}
+        number-selector: ${TAX_PORTAL_NUMBER_SELECTOR:}
+        total-selector: ${TAX_PORTAL_TOTAL_SELECTOR:}
+        vat-selector: ${TAX_PORTAL_VAT_SELECTOR:}
+        type-selector: ${TAX_PORTAL_TYPE_SELECTOR:}
+        entry-type-selector: ${TAX_PORTAL_ENTRY_TYPE_SELECTOR:}
+        note-selector: ${TAX_PORTAL_NOTE_SELECTOR:}
+        detail-link-attribute: ${TAX_PORTAL_DETAIL_LINK_ATTRIBUTE:href}
+      detail:
+        ready-selector: ${TAX_PORTAL_DETAIL_READY_SELECTOR:}
+        line-item-selector: ${TAX_PORTAL_LINE_ITEM_SELECTOR:}
+        line-number-selector: ${TAX_PORTAL_LINE_NUMBER_SELECTOR:}
+        product-name-selector: ${TAX_PORTAL_PRODUCT_NAME_SELECTOR:}
+        product-code-selector: ${TAX_PORTAL_PRODUCT_CODE_SELECTOR:}
+        gtin-selector: ${TAX_PORTAL_GTIN_SELECTOR:}
+        unit-selector: ${TAX_PORTAL_UNIT_SELECTOR:}
+        quantity-selector: ${TAX_PORTAL_QUANTITY_SELECTOR:}
+        unit-price-selector: ${TAX_PORTAL_UNIT_PRICE_SELECTOR:}
+        total-selector: ${TAX_PORTAL_LINE_TOTAL_SELECTOR:}

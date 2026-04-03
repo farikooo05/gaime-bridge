@@ -1,0 +1,54 @@
+package com.dynorix.gaimebridge.dto;
+
+import com.dynorix.gaimebridge.domain.enumtype.DocumentDirection;
+import com.dynorix.gaimebridge.domain.enumtype.DocumentProcessingState;
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.OffsetDateTime;
+import java.util.List;
+import java.util.UUID;
+
+public record DocumentDetailResponse(
+        UUID id,
+        String externalDocumentId,
+        DocumentDirection direction,
+        String documentSeries,
+        String documentNumber,
+        LocalDate documentDate,
+        String portalDetailUrl,
+        OffsetDateTime portalCreatedAt,
+        OffsetDateTime portalSignedAt,
+        OffsetDateTime portalUpdatedAt,
+        String documentTypeName,
+        String entryTypeName,
+        String objectName,
+        String documentVersionLabel,
+        String amendmentType,
+        String relatedDocumentNumber,
+        String portalStatus,
+        String sellerName,
+        String sellerTaxId,
+        String buyerName,
+        String buyerTaxId,
+        String baseNote,
+        String additionalNote,
+        String reasonText,
+        BigDecimal exciseAmount,
+        BigDecimal netAmount,
+        BigDecimal vatAmount,
+        BigDecimal taxableAmount,
+        BigDecimal nonTaxableAmount,
+        BigDecimal vatExemptAmount,
+        BigDecimal zeroRatedAmount,
+        BigDecimal roadTaxAmount,
+        String advanceDocumentSeries,
+        String advanceDocumentNumber,
+        BigDecimal advanceAmount,
+        BigDecimal totalAmount,
+        String currencyCode,
+        DocumentProcessingState processingState,
+        OffsetDateTime detailLoadedAt,
+        OffsetDateTime lastSyncedAt,
+        List<DocumentLineResponse> lines
+) {
+}

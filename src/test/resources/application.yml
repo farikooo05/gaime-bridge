@@ -1,0 +1,18 @@
+spring:
+  application:
+    name: gaime-bridge
+  datasource:
+    url: jdbc:h2:mem:gaime_bridge_test;MODE=PostgreSQL;DB_CLOSE_DELAY=-1;DATABASE_TO_LOWER=TRUE
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+  flyway:
+    enabled: false
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+
+app:
+  security:
+    api-username: test
+    api-password: test123

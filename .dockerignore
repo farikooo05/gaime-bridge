@@ -1,0 +1,11 @@
+.git
+.gitignore
+.idea
+.vscode
+.gradle
+.gradle-user-home
+.run
+.data
+build
+out
+HELP.md

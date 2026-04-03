@@ -1,0 +1,25 @@
+spring:
+  datasource:
+    url: ${DEV_DB_URL:${DB_URL:jdbc:postgresql://localhost:5432/gaime_bridge}}
+    username: ${DEV_DB_USERNAME:${DB_USERNAME:gaime_bridge}}
+    password: ${DEV_DB_PASSWORD:${DB_PASSWORD:gaime_bridge}}
+    driver-class-name: org.postgresql.Driver
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+  jpa:
+    hibernate:
+      ddl-auto: validate
+
+app:
+  security:
+    api-username: dev
+    api-password: dev123
+  demo:
+    enabled: ${APP_DEMO_ENABLED:true}
+  exports:
+    base-dir: ./exports/dev
+
+logging:
+  level:
+    com.dynorix.gaimebridge: INFO

@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Dynorix Gaimə Bridge</title>
+    <link rel="stylesheet" href="/ui/operator.css?v=20260402b">
+</head>
+<body>
+<main class="layout">
+    <section class="hero">
+        <div>
+            <p class="eyebrow">Real Portal Mode</p>
+            <h1>Bring Your e-Qaimə Documents Into Dynorix</h1>
+            <p class="subtitle">Enter your Asan phone and user ID here, confirm on your phone, choose your company in the opened portal window, and then continue with your real documents inside this app.</p>
+        </div>
+        <div class="hero-card">
+            <div class="metric">
+                <span class="metric-label">Flow</span>
+                <strong>login -> confirm -> choose company -> documents</strong>
+            </div>
+            <div class="metric">
+                <span class="metric-label">Portal</span>
+                <strong>new.e-taxes.gov.az</strong>
+            </div>
+            <div class="metric">
+                <span class="metric-label">Data</span>
+                <strong>real e-Qaimə sync</strong>
+            </div>
+        </div>
+    </section>
+
+    <section class="panel auth-panel">
+        <div>
+            <h2>Portal Login</h2>
+            <p>Use your real Asan credentials. The browser window will open for confirmation and company selection, then Dynorix will continue loading documents automatically.</p>
+        </div>
+        <form id="portal-form" class="portal-form">
+            <label>
+                <span>Phone without +994</span>
+                <input id="portal-phone" name="portalPhone" type="text" inputmode="numeric" placeholder="515235297" required>
+            </label>
+            <label>
+                <span>Asan user ID</span>
+                <input id="portal-user-id" name="portalUserId" type="password" maxlength="6" placeholder="******" required>
+            </label>
+            <label>
+                <span>Date from</span>
+                <input id="date-from" name="dateFrom" type="date" required>
+            </label>
+            <label>
+                <span>Date to</span>
+                <input id="date-to" name="dateTo" type="date" required>
+            </label>
+            <label class="checkbox-field">
+                <input id="load-details" name="loadDocumentDetails" type="checkbox" checked>
+                <span>Load document details and line items</span>
+            </label>
+            <div class="form-actions">
+                <button id="connect-button" type="submit">Connect and Load Documents</button>
+            </div>
+        </form>
+        <div id="status-banner" class="status-banner neutral">Ready to start a real portal session.</div>
+    </section>
+
+    <section class="panel journey-panel">
+        <div class="panel-header">
+            <div>
+                <h2>Progress</h2>
+                <p>This is the live portal flow. Keep the opened portal window available while sync is running.</p>
+            </div>
+        </div>
+        <div class="steps" id="steps">
+            <div class="step active" data-step="credentials">
+                <strong>1. Credentials</strong>
+                <span>Enter phone and Asan user ID.</span>
+            </div>
+            <div class="step" data-step="phone-confirmation">
+                <strong>2. Phone confirmation</strong>
+                <span>Approve the code on your phone.</span>
+            </div>
+            <div class="step" data-step="company-selection">
+                <strong>3. Company selection</strong>
+                <span>Choose the company in the portal window.</span>
+            </div>
+            <div class="step" data-step="syncing">
+                <strong>4. Syncing</strong>
+                <span>Dynorix imports your documents.</span>
+            </div>
+            <div class="step" data-step="documents-ready">
+                <strong>5. Documents ready</strong>
+                <span>Your portal documents appear below.</span>
+            </div>
+        </div>
+        <div id="journey-note" class="journey-note">
+            Start by entering your real portal credentials above.
+        </div>
+    </section>
+
+    <section id="documents-section" class="documents-shell hidden">
+        <section class="panel filters-panel">
+            <div class="panel-header">
+                <div>
+                    <h2>Document Filters</h2>
+                    <p>Once real sync completes, narrow the list, inspect documents, and export what you need.</p>
+                </div>
+                <div class="actions">
+                    <button id="refresh-button" type="button" class="secondary">Refresh</button>
+                    <button id="clear-filters-button" type="button" class="ghost">Clear filters</button>
+                </div>
+            </div>
+            <form id="filters-form" class="filters-grid">
+                <label>
+                    <span>Document number</span>
+                    <input name="documentNumber" type="text" placeholder="11009900">
+                </label>
+                <label>
+                    <span>Counterparty tax id</span>
+                    <input name="counterpartyTaxId" type="text" placeholder="9900069391">
+                </label>
+                <label>
+                    <span>Direction</span>
+                    <select name="direction">
+                        <option value="">All</option>
+                        <option value="INCOMING">Incoming</option>
+                        <option value="OUTGOING">Outgoing</option>
+                    </select>
+                </label>
+                <label>
+                    <span>Status</span>
+                    <input name="portalStatus" type="text" placeholder="approved">
+                </label>
+                <label>
+                    <span>Date from</span>
+                    <input name="dateFrom" type="date">
+                </label>
+                <label>
+                    <span>Date to</span>
+                    <input name="dateTo" type="date">
+                </label>
+                <div class="filters-submit">
+                    <button type="submit">Apply filters</button>
+                </div>
+            </form>
+        </section>
+
+        <section class="panel">
+            <div class="toolbar">
+                <div class="selection-meta">
+                    <strong id="documents-count">0</strong> documents
+                    <span class="muted">|</span>
+                    <strong id="selected-count">0</strong> selected
+                </div>
+                <div class="actions">
+                    <button id="select-visible-button" type="button" class="secondary">Select visible</button>
+                    <button id="clear-selection-button" type="button" class="ghost">Clear selection</button>
+                    <button id="export-button" type="button" disabled>Export JSON</button>
+                </div>
+            </div>
+
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                    <tr>
+                        <th></th>
+                        <th>Date</th>
+                        <th>Number</th>
+                        <th>Direction</th>
+                        <th>Seller</th>
+                        <th>Buyer</th>
+                        <th>Status</th>
+                        <th>Total</th>
+                    </tr>
+                    </thead>
+                    <tbody id="documents-body">
+                    <tr>
+                        <td colspan="8" class="empty-state">Your real documents will appear here after sync.</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section class="detail-grid">
+            <section class="panel">
+                <div class="panel-header">
+                    <div>
+                        <h2>Document Preview</h2>
+                        <p>Click a document row to inspect its detail payload and line items.</p>
+                    </div>
+                </div>
+                <div id="document-preview" class="preview-card empty-state">No document selected.</div>
+            </section>
+
+            <section class="panel">
+                <div class="panel-header">
+                    <div>
+                        <h2>Export Result</h2>
+                        <p>The latest JSON export result appears here.</p>
+                    </div>
+                </div>
+                <div id="export-result" class="preview-card empty-state">No export started yet.</div>
+            </section>
+        </section>
+    </section>
+</main>
+
+<script src="/ui/operator.js?v=20260402b"></script>
+</body>
+</html>
