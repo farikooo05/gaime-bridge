@@ -32,6 +32,7 @@ $env:DEV_DB_URL = "jdbc:postgresql://localhost:$postgresPort/gaime_bridge"
 $env:DEV_DB_USERNAME = if ([string]::IsNullOrWhiteSpace($env:DB_USERNAME)) { "gaime_bridge" } else { $env:DB_USERNAME }
 $env:DEV_DB_PASSWORD = if ([string]::IsNullOrWhiteSpace($env:DB_PASSWORD)) { "gaime_bridge" } else { $env:DB_PASSWORD }
 $env:EXPORT_BASE_DIR = "./exports/live"
+$env:TAX_PORTAL_STORAGE_STATE_PATH = ".run/playwright-tax-portal-state.json"
 
 $required = @(
     "TAX_PORTAL_LOGIN_URL",
@@ -59,6 +60,7 @@ if ($missing.Count -gt 0) {
 
 Write-Host "Starting live Asan run with dev profile and demo data disabled..." -ForegroundColor Cyan
 Write-Host "Browser automation is enabled and headless mode is off." -ForegroundColor Cyan
+Write-Host "Saved portal session state: $env:TAX_PORTAL_STORAGE_STATE_PATH" -ForegroundColor Cyan
 Write-Host "Using local PostgreSQL database for live sync: $env:DEV_DB_URL" -ForegroundColor Cyan
 Write-Host "Using isolated live exports directory: ./exports/live" -ForegroundColor Cyan
 

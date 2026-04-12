@@ -47,6 +47,12 @@ Notes:
 - In sandboxed runs, keep `GRADLE_USER_HOME` inside the workspace.
 - The supported first-run slice is `dev` with H2, demo data, and JSON export.
 
+## Browser & DevTools Debugging
+
+- When modifying Playwright interactions, prioritize `evaluate` blocks carefully to not clash with SPA built-in fetch headers.
+- If tokens or cookies are suspected to be the issue, always instruct the user to open DevTools (`setDevtools(true)`) to inspect specific Network request headers.
+- Playwright's `storageState` captures `localStorage` and cookies, but modern SPAs often transition tokens (Temporary -> Permanent). Ensure explicit loops and validation of the *final* token.
+
 ## Risky areas
 
 - `integration/taxportal`: portal selectors, browser automation, parsing assumptions

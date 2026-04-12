@@ -5,6 +5,7 @@ import com.dynorix.gaimebridge.domain.enumtype.SyncPhase;
 import com.dynorix.gaimebridge.integration.taxportal.config.BrowserAutomationProperties;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.net.URI;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -12,10 +13,14 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 @Component
 public class PlaywrightBrowserAutomationParser {
+
+    private static final Logger log = LoggerFactory.getLogger(PlaywrightBrowserAutomationParser.class);
 
     private final BrowserAutomationProperties properties;
     private final ObjectMapper objectMapper;
@@ -36,12 +41,16 @@ public class PlaywrightBrowserAutomationParser {
         progressListener.onPhase(SyncPhase.OPENING_LOGIN, "Opening the portal login page.");
         openLoginForm(page, loginUrl, login);
         submitAsanCredentials(page, login, runtimeUsername, runtimePassword);
+        log.info("Submitted portal credentials. currentUrl={}", page.currentUrl());
         progressListener.onPhase(SyncPhase.WAITING_FOR_PHONE_CONFIRMATION, "Confirm the Asan request on your phone.");
         waitForVerificationScreen(page, login);
-        waitForPostVerificationTransition(page, login);
-        progressListener.onPhase(SyncPhase.WAITING_FOR_COMPANY_SELECTION, "Choose your company in the portal window.");
-        waitForManualCompanySelection(page, login);
+        LoginTransition transition = waitForPostVerificationTransition(page, login);
+        if (transition == LoginTransition.TAXPAYER_SELECTION) {
+            progressListener.onPhase(SyncPhase.WAITING_FOR_COMPANY_SELECTION, "Choose your company in the portal window.");
+            completeTaxpayerSelection(page, login);
+        }
         waitForHomeReady(page, login);
+        log.info("Portal login flow completed. currentUrl={}", page.currentUrl());
 
         return new RawParseResult(
                 ParsePhase.LOGIN,
@@ -59,6 +68,10 @@ public class PlaywrightBrowserAutomationParser {
                         "chooseTaxpayerPath", login.getChooseTaxpayerPath()),
                 page.content(),
                 "");
+    }
+
+    public boolean hasAuthenticatedSession(BrowserPage page) {
+        return isPortalSessionReady(page, properties.getLogin());
     }
 
     public RawParseResult parseList(BrowserPage page) {
@@ -140,9 +153,11 @@ public class PlaywrightBrowserAutomationParser {
         long deadline = System.nanoTime() + login.getVerificationTimeout().toNanos();
         while (System.nanoTime() < deadline) {
             if (isVerificationStageReached(page, login)) {
+                log.info("Verification screen or post-verification state reached. currentUrl={}", page.currentUrl());
                 return;
             }
             if (!login.getVerificationPendingSelector().isBlank() && page.isVisible(login.getVerificationPendingSelector())) {
+                log.info("Verification pending selector is visible. currentUrl={}", page.currentUrl());
                 return;
             }
             sleep(login.getPollInterval().toMillis());
@@ -150,54 +165,55 @@ public class PlaywrightBrowserAutomationParser {
         throw new BrowserAutomationParseException("Timed out waiting for Asan verification screen.");
     }
 
-    private void waitForPostVerificationTransition(BrowserPage page, BrowserAutomationProperties.Login login) {
+    private LoginTransition waitForPostVerificationTransition(BrowserPage page, BrowserAutomationProperties.Login login) {
         long deadline = System.nanoTime() + login.getVerificationTimeout().toNanos();
         while (System.nanoTime() < deadline) {
-            if (isTaxpayerSelectionScreen(page) || isPortalSessionReady(page, login)) {
-                return;
+            if (isTaxpayerSelectionScreen(page)) {
+                log.info("Tax portal login transitioned to taxpayer selection. url={}", page.currentUrl());
+                return LoginTransition.TAXPAYER_SELECTION;
+            }
+            if (isPortalSessionReady(page, login)) {
+                log.info("Tax portal login reached an authenticated portal session. url={}", page.currentUrl());
+                return LoginTransition.PORTAL_READY;
             }
             sleep(login.getPollInterval().toMillis());
         }
-        throw new BrowserAutomationParseException("Timed out waiting for Asan verification approval.");
+        throw new BrowserAutomationParseException(
+                "Timed out waiting for Asan verification approval. Last URL: " + page.currentUrl());
+    }
+
+    private void completeTaxpayerSelection(BrowserPage page, BrowserAutomationProperties.Login login) {
+        if (isPortalSessionReady(page, login)) {
+            return;
+        }
+        if (!isTaxpayerSelectionScreen(page)) {
+            throw new BrowserAutomationParseException(
+                    "Taxpayer selection was expected after verification, but the portal is on an unexpected page: "
+                            + page.currentUrl());
+        }
+        log.info("Waiting for manual taxpayer/company selection. url={}", page.currentUrl());
+        waitForManualCompanySelection(page, login);
     }
 
     private void waitForManualCompanySelection(BrowserPage page, BrowserAutomationProperties.Login login) {
         long deadline = System.nanoTime() + login.getVerificationTimeout().toNanos();
         while (System.nanoTime() < deadline) {
-            if (!isTaxpayerSelectionScreen(page)) {
+            if (!isTaxpayerSelectionScreen(page) || isPortalSessionReady(page, login)) {
+                log.info("Company selection page completed or portal session is ready. currentUrl={}", page.currentUrl());
                 return;
             }
             sleep(login.getPollInterval().toMillis());
         }
-        throw new BrowserAutomationParseException("Timed out waiting for manual company selection on the e-portal companies page.");
-    }
-
-    private void chooseTaxpayer(BrowserPage page, BrowserAutomationProperties.Login login) {
-        if (login.getLegalTin() == null || login.getLegalTin().isBlank()) {
-            return;
-        }
-
-        if (isTaxpayerSelectionScreen(page)) {
-            selectTaxpayerFromVisiblePage(page, login.getLegalTin());
-        } else if (login.getChooseTaxpayerPath() != null && !login.getChooseTaxpayerPath().isBlank()) {
-            Map<String, Object> payload = new LinkedHashMap<>();
-            payload.put("ownerType", login.getOwnerType());
-            payload.put("legalTin", login.getLegalTin());
-            executeJsonRequest(page, "POST", resolveUrl(login.getChooseTaxpayerPath()), toJson(payload));
-            sleep(login.getPollInterval().toMillis() * 2);
-            if (isTaxpayerSelectionScreen(page)) {
-                selectTaxpayerFromVisiblePage(page, login.getLegalTin());
-            }
-        }
-        if (login.getHomeUrl() != null && !login.getHomeUrl().isBlank()) {
-            page.navigate(resolveUrl(login.getHomeUrl()), properties.getBrowser().getNavigationTimeout());
-        }
+        throw new BrowserAutomationParseException(
+                "Timed out waiting for manual company selection on the e-portal companies page. Last URL: "
+                        + page.currentUrl());
     }
 
     private void waitForHomeReady(BrowserPage page, BrowserAutomationProperties.Login login) {
         long deadline = System.nanoTime() + login.getVerificationTimeout().toNanos();
         while (System.nanoTime() < deadline) {
             if (isPortalSessionReady(page, login)) {
+                log.info("Authenticated portal session is ready. currentUrl={}", page.currentUrl());
                 return;
             }
             sleep(login.getPollInterval().toMillis());
@@ -243,14 +259,19 @@ public class PlaywrightBrowserAutomationParser {
 
     private boolean isTaxpayerSelectionScreen(BrowserPage page) {
         String currentUrl = page.currentUrl();
-        if (currentUrl != null && currentUrl.contains("/eportal/verification/companies")) {
-            return true;
-        }
         String content = page.content();
         if (content == null || content.isBlank()) {
-            return false;
+            return currentUrl != null && currentUrl.contains("/eportal/verification/companies");
         }
         String normalized = content.toLowerCase();
+        if (properties.getLogin().getLegalTin() != null && !properties.getLogin().getLegalTin().isBlank()) {
+            normalized = normalized.replace(properties.getLogin().getLegalTin().toLowerCase(), "");
+        }
+        boolean chooserTextPresent = normalized.contains("axtar")
+                || normalized.contains("search");
+        boolean configuredTinPresent = properties.getLogin().getLegalTin() != null
+                && !properties.getLogin().getLegalTin().isBlank()
+                && normalized.contains(properties.getLogin().getLegalTin().toLowerCase());
         return normalized.contains("vergi ödəyicisini seçin")
                 || normalized.contains("şəxsi kabinetə daxil olmaq üçün istifadə etmək istədiyiniz vergi ödəyicisini seçin")
                 || normalized.contains("vöen 2006765861");
@@ -352,9 +373,11 @@ public class PlaywrightBrowserAutomationParser {
         if (currentUrl == null || currentUrl.isBlank()) {
             return false;
         }
-        String normalizedCurrent = normalizeUrlFragment(currentUrl);
-        String normalizedConfigured = normalizeUrlFragment(configuredUrl);
-        return normalizedCurrent.contains(normalizedConfigured) || currentUrl.contains(configuredUrl);
+        String normalizedCurrent = normalizeComparableUrl(currentUrl);
+        String normalizedConfigured = normalizeComparableUrl(configuredUrl);
+        return normalizedCurrent.equals(normalizedConfigured)
+                || normalizedCurrent.startsWith(normalizedConfigured + "?")
+                || normalizedCurrent.startsWith(normalizedConfigured + "#");
     }
 
     private boolean isVerificationStageReached(BrowserPage page, BrowserAutomationProperties.Login login) {
@@ -372,26 +395,33 @@ public class PlaywrightBrowserAutomationParser {
     }
 
     private boolean isPortalSessionReady(BrowserPage page, BrowserAutomationProperties.Login login) {
+        // 1. BEST CASE: We visually see the dashboard is ready
         if (!login.getHomeSuccessSelector().isBlank() && page.isVisible(login.getHomeSuccessSelector())) {
             return true;
         }
         if (!login.getSuccessSelector().isBlank() && page.isVisible(login.getSuccessSelector())) {
             return true;
         }
+
         String currentUrl = page.currentUrl();
-        if (matchesUrl(currentUrl, login.getHomeUrl())) {
-            return true;
-        }
         if (currentUrl == null || currentUrl.isBlank()) {
             return false;
         }
+
         String normalizedCurrent = normalizeUrlFragment(currentUrl);
-        if (normalizedCurrent.contains("/eportal")
+        boolean isEportalUrl = normalizedCurrent.contains("/eportal")
                 && !normalizedCurrent.contains("/eportal/login")
                 && !normalizedCurrent.contains("/eportal/verification")
-                && !isTaxpayerSelectionScreen(page)) {
+                && !isTaxpayerSelectionScreen(page);
+
+        // 2. DOM Check: Ensure we don't return true just because the URL changed
+        if (isEportalUrl || matchesUrl(currentUrl, login.getHomeUrl())) {
+            if (!login.getHomeSuccessSelector().isBlank() && !page.isVisible(login.getHomeSuccessSelector())) {
+                return false;
+            }
             return true;
         }
+
         return false;
     }
 
@@ -399,6 +429,22 @@ public class PlaywrightBrowserAutomationParser {
         String normalized = value == null ? "" : value.trim();
         while (normalized.endsWith("/")) {
             normalized = normalized.substring(0, normalized.length() - 1);
+        }
+        return normalized;
+    }
+
+    private String normalizeComparableUrl(String value) {
+        String normalized = normalizeUrlFragment(value);
+        if (normalized.startsWith("http://") || normalized.startsWith("https://")) {
+            URI uri = URI.create(normalized);
+            String path = uri.getRawPath() == null || uri.getRawPath().isBlank() ? "/" : uri.getRawPath();
+            if (uri.getRawQuery() != null && !uri.getRawQuery().isBlank()) {
+                path += "?" + uri.getRawQuery();
+            }
+            if (uri.getRawFragment() != null && !uri.getRawFragment().isBlank()) {
+                path += "#" + uri.getRawFragment();
+            }
+            return normalizeUrlFragment(path);
         }
         return normalized;
     }
@@ -430,5 +476,10 @@ public class PlaywrightBrowserAutomationParser {
         if (value == null || value.isBlank()) {
             throw new BrowserAutomationParseException("Missing required browser property: " + propertyName);
         }
+    }
+
+    private enum LoginTransition {
+        TAXPAYER_SELECTION,
+        PORTAL_READY
     }
 }

@@ -52,6 +52,7 @@ app:
       browser:
         headless: ${TAX_PORTAL_HEADLESS:true}
         base-url: ${TAX_PORTAL_BASE_URL:https://new.e-taxes.gov.az}
+        storage-state-path: ${TAX_PORTAL_STORAGE_STATE_PATH:}
         timeout: 30s
         navigation-timeout: 45s
         slow-mo-ms: 0
@@ -78,6 +79,10 @@ app:
         home-success-selector: ${TAX_PORTAL_HOME_SUCCESS_SELECTOR:}
       api:
         source-system: ${TAX_PORTAL_SOURCE_SYSTEM:avis}
+        profile-path: ${TAX_PORTAL_PROFILE_PATH:/api/po/profile/public/v2/profile}
+        control-condition-path: ${TAX_PORTAL_CONTROL_CONDITION_PATH:/api/po/vatacc/public/v1/controlCondition}
+        approval-list-path: ${TAX_PORTAL_APPROVAL_LIST_PATH:/api/po/invoice/public/v1/invoice/is-on-approval-list}
+        user-events-path: ${TAX_PORTAL_USER_EVENTS_PATH:/api/po/calendar/public/v1/getUserEvents}
         inbox-path: ${TAX_PORTAL_INBOX_PATH:/api/po/invoice/public/v2/invoice/find.inbox}
         outbox-path: ${TAX_PORTAL_OUTBOX_PATH:/api/po/invoice/public/v2/invoice/find.outbox}
         draft-path: ${TAX_PORTAL_DRAFT_PATH:/api/po/invoice/public/v2/invoice/find.draft}
@@ -86,9 +91,9 @@ app:
         history-path-template: '${TAX_PORTAL_HISTORY_PATH_TEMPLATE:/api/po/invoice/public/v2/invoice/{id}/history?sourceSystem={sourceSystem}}'
         tree-path-template: '${TAX_PORTAL_TREE_PATH_TEMPLATE:/api/po/invoice/public/v2/invoice/{id}/tree?sourceSystem={sourceSystem}}'
         parent-histories-path-template: '${TAX_PORTAL_PARENT_HISTORIES_PATH_TEMPLATE:/api/po/invoice/public/v2/invoice/{serialNumber}/parent-histories?sourceSystem={sourceSystem}}'
-        inbox-payload-template: '${TAX_PORTAL_INBOX_PAYLOAD_TEMPLATE:{"page":{{page}},"year":{{year}}}}'
-        outbox-payload-template: '${TAX_PORTAL_OUTBOX_PAYLOAD_TEMPLATE:{"page":{{page}},"year":{{year}}}}'
-        draft-payload-template: '${TAX_PORTAL_DRAFT_PAYLOAD_TEMPLATE:{"page":{{page}},"year":{{year}}}}'
+        inbox-payload-template: '${TAX_PORTAL_INBOX_PAYLOAD_TEMPLATE:{"page":{{page}},"year":{{year}},"sourceSystem":{{sourceSystem}}}}' 
+        outbox-payload-template: '${TAX_PORTAL_OUTBOX_PAYLOAD_TEMPLATE:{"page":{{page}},"year":{{year}},"sourceSystem":{{sourceSystem}}}}'
+        draft-payload-template: '${TAX_PORTAL_DRAFT_PAYLOAD_TEMPLATE:{"page":{{page}},"year":{{year}},"sourceSystem":{{sourceSystem}}}}'
       list:
         url: ${TAX_PORTAL_LIST_URL:/}
         container-selector: ${TAX_PORTAL_LIST_CONTAINER_SELECTOR:}

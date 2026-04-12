@@ -66,6 +66,7 @@ public class BrowserAutomationProperties {
     public static class Browser {
         private boolean headless = true;
         private String baseUrl = "";
+        private String storageStatePath = "";
         private Duration timeout = Duration.ofSeconds(30);
         private Duration navigationTimeout = Duration.ofSeconds(45);
         private double slowMoMs;
@@ -85,6 +86,14 @@ public class BrowserAutomationProperties {
 
         public void setBaseUrl(String baseUrl) {
             this.baseUrl = baseUrl;
+        }
+
+        public String getStorageStatePath() {
+            return storageStatePath;
+        }
+
+        public void setStorageStatePath(String storageStatePath) {
+            this.storageStatePath = storageStatePath;
         }
 
         public Duration getTimeout() {
@@ -296,6 +305,10 @@ public class BrowserAutomationProperties {
 
     public static class Api {
         private String sourceSystem = "avis";
+        private String profilePath = "/api/po/auth/public/v1/profile";
+        private String controlConditionPath = "/api/po/auth/public/v1/controlCondition";
+        private String approvalListPath = "/api/po/auth/public/v1/asanImza/is-on-approval-list";
+        private String userEventsPath = "/api/po/auth/public/v1/getUserEvents";
         private String inboxPath = "/api/po/invoice/public/v2/invoice/find.inbox";
         private String outboxPath = "/api/po/invoice/public/v2/invoice/find.outbox";
         private String draftPath = "/api/po/invoice/public/v2/invoice/find.draft";
@@ -304,9 +317,9 @@ public class BrowserAutomationProperties {
         private String historyPathTemplate = "/api/po/invoice/public/v2/invoice/{id}/history?sourceSystem={sourceSystem}";
         private String treePathTemplate = "/api/po/invoice/public/v2/invoice/{id}/tree?sourceSystem={sourceSystem}";
         private String parentHistoriesPathTemplate = "/api/po/invoice/public/v2/invoice/{serialNumber}/parent-histories?sourceSystem={sourceSystem}";
-        private String inboxPayloadTemplate = "{\"page\":{{page}},\"year\":{{year}}}";
-        private String outboxPayloadTemplate = "{\"page\":{{page}},\"year\":{{year}}}";
-        private String draftPayloadTemplate = "{\"page\":{{page}},\"year\":{{year}}}";
+        private String inboxPayloadTemplate = "{\"page\":{{page}},\"year\":{{year}},\"sourceSystem\":{{sourceSystem}}}";
+        private String outboxPayloadTemplate = "{\"page\":{{page}},\"year\":{{year}},\"sourceSystem\":{{sourceSystem}}}";
+        private String draftPayloadTemplate = "{\"page\":{{page}},\"year\":{{year}},\"sourceSystem\":{{sourceSystem}}}";
 
         public String getSourceSystem() {
             return sourceSystem;
@@ -314,6 +327,38 @@ public class BrowserAutomationProperties {
 
         public void setSourceSystem(String sourceSystem) {
             this.sourceSystem = sourceSystem;
+        }
+
+        public String getProfilePath() {
+            return profilePath;
+        }
+
+        public void setProfilePath(String profilePath) {
+            this.profilePath = profilePath;
+        }
+
+        public String getControlConditionPath() {
+            return controlConditionPath;
+        }
+
+        public void setControlConditionPath(String controlConditionPath) {
+            this.controlConditionPath = controlConditionPath;
+        }
+
+        public String getApprovalListPath() {
+            return approvalListPath;
+        }
+
+        public void setApprovalListPath(String approvalListPath) {
+            this.approvalListPath = approvalListPath;
+        }
+
+        public String getUserEventsPath() {
+            return userEventsPath;
+        }
+
+        public void setUserEventsPath(String userEventsPath) {
+            this.userEventsPath = userEventsPath;
         }
 
         public String getInboxPath() {
