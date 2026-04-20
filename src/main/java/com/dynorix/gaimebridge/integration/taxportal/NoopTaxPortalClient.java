@@ -12,7 +12,35 @@ import org.springframework.stereotype.Component;
 public class NoopTaxPortalClient implements TaxPortalClient {
 
     @Override
-    public java.util.List<TaxPortalSyncedDocument> syncDocuments(TaxPortalSyncRequest request, SyncProgressListener progressListener) {
+    public java.util.List<TaxPortalSyncedDocument> syncDocuments(
+            TaxPortalSyncRequest request, 
+            SyncProgressListener progressListener,
+            java.util.function.BooleanSupplier isCancelled) {
         throw new IllegalStateException("Tax portal browser integration is disabled. Enable app.tax-portal.browser.enabled to run sync.");
+    }
+
+    @Override
+    public com.dynorix.gaimebridge.dto.AuthVerificationResponse startVerification(String portalPhone, String portalUserId) {
+        throw new IllegalStateException("Tax portal browser integration is disabled.");
+    }
+
+    @Override
+    public void confirmTaxpayer(String sessionId, String legalTin) {
+        throw new IllegalStateException("Tax portal browser integration is disabled.");
+    }
+
+    @Override
+    public com.dynorix.gaimebridge.dto.AuthStatusResponse checkSession() {
+        return new com.dynorix.gaimebridge.dto.AuthStatusResponse(false, null, null, null, null);
+    }
+
+    @Override
+    public void cancelVerification() {
+        // No-op
+    }
+
+    @Override
+    public void logout() {
+        // No-op
     }
 }

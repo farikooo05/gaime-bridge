@@ -8,6 +8,7 @@ import java.util.UUID;
 
 public record ExportRequest(
         @NotNull ExportFormat format,
-        @NotEmpty List<UUID> documentIds
+        @NotEmpty List<UUID> documentIds,
+        List<String> columns
 ) {
 }

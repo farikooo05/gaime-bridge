@@ -16,6 +16,7 @@ import com.dynorix.gaimebridge.domain.enumtype.DocumentProcessingState;
 import com.dynorix.gaimebridge.domain.enumtype.JobStatus;
 import com.dynorix.gaimebridge.domain.enumtype.SyncPhase;
 import com.dynorix.gaimebridge.dto.SyncRequest;
+import com.dynorix.gaimebridge.exception.AuthenticationRequiredException;
 import com.dynorix.gaimebridge.repository.SyncJobRepository;
 import com.dynorix.gaimebridge.repository.TaxDocumentRepository;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -29,6 +30,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class SyncExecutionService {
@@ -52,6 +54,10 @@ public class SyncExecutionService {
         this.objectMapper = objectMapper;
     }
 
+    public com.dynorix.gaimebridge.dto.AuthStatusResponse checkPortalSession() {
+        return taxPortalClient.checkSession();
+    }
+
     @Async
     public void runSync(UUID syncJobId, SyncRequest request) {
         SyncJob syncJob = syncJobRepository.findById(syncJobId)
@@ -70,32 +76,30 @@ public class SyncExecutionService {
                             request.dateFrom(),
                             request.dateTo(),
                             request.loadDocumentDetails()),
-                    progressListener(syncJobId));
+                    progressListener(syncJobId),
+                    () -> isCancelled(syncJobId));
             syncJob = reload(syncJobId);
-            syncJob.setDocumentsDiscovered(syncedDocuments.size());
-
             int persisted = 0;
-            for (TaxPortalSyncedDocument syncedDocument : syncedDocuments) {
-                updatePhase(reload(syncJobId), SyncPhase.PERSISTING_DOCUMENTS, "Saving imported documents in Dynorix.");
-                TaxPortalDocumentSummary summary = syncedDocument.summary();
-                TaxDocument document = taxDocumentRepository.findByExternalDocumentId(summary.externalDocumentId())
-                        .orElseGet(TaxDocument::new);
-                applySummary(document, summary);
+            if (!syncedDocuments.isEmpty()) {
+                updatePhase(syncJob, SyncPhase.PERSISTING_DOCUMENTS, "Saving imported documents in Dynorix.");
+            }
 
-                if (request.loadDocumentDetails() && syncedDocument.details() != null) {
-                    applyDetails(
-                            document,
-                            syncedDocument.details(),
-                            syncedDocument.versions(),
-                            syncedDocument.history(),
-                            syncedDocument.relationTree());
+            for (TaxPortalSyncedDocument syncedDocument : syncedDocuments) {
+                // Check if job was cancelled between documents
+                if (isCancelled(syncJobId)) {
+                    log.info("Sync job {} cancelled by user. Stopping persistence loop.", syncJobId);
+                    return;
                 }
 
-                taxDocumentRepository.save(document);
+                saveSyncedDocument(syncedDocument, request.loadDocumentDetails());
                 persisted++;
-                syncJob = reload(syncJobId);
-                syncJob.setDocumentsPersisted(persisted);
-                syncJobRepository.save(syncJob);
+                
+                // Throttle updates to DB to avoid write storms (update every 50 docs or at the end)
+                if (persisted % 50 == 0 || persisted == syncedDocuments.size()) {
+                    syncJob = reload(syncJobId);
+                    syncJob.setDocumentsPersisted(persisted);
+                    syncJobRepository.save(syncJob);
+                }
             }
 
             syncJob = reload(syncJobId);
@@ -104,6 +108,22 @@ public class SyncExecutionService {
             syncJob.setFinishedAt(OffsetDateTime.now());
             syncJob.setPhase(SyncPhase.COMPLETED);
             syncJob.setPhaseMessage("Documents are ready.");
+            syncJobRepository.save(syncJob);
+        } catch (com.dynorix.gaimebridge.exception.SyncCancelledException ex) {
+            log.info("Sync job {} interrupted by user (caught in service).", syncJobId);
+            syncJob = reload(syncJobId);
+            syncJob.setStatus(JobStatus.CANCELLED);
+            syncJob.setFinishedAt(OffsetDateTime.now());
+            syncJob.setPhase(SyncPhase.CANCELLED);
+            syncJob.setPhaseMessage("Sync stopped by user.");
+            syncJobRepository.save(syncJob);
+        } catch (AuthenticationRequiredException ex) {
+            syncJob = syncJobRepository.findById(syncJobId).orElse(syncJob);
+            syncJob.setStatus(JobStatus.FAILED);
+            syncJob.setFinishedAt(OffsetDateTime.now());
+            syncJob.setPhase(SyncPhase.FAILED);
+            syncJob.setPhaseMessage("Authentication Required");
+            syncJob.setErrorMessage("Please go to the Auth tab and log in to the portal first.");
             syncJobRepository.save(syncJob);
         } catch (Exception ex) {
             syncJob = syncJobRepository.findById(syncJobId).orElse(syncJob);
@@ -114,6 +134,26 @@ public class SyncExecutionService {
             syncJob.setErrorMessage(ex.getMessage());
             syncJobRepository.save(syncJob);
         }
+    }
+
+    @Transactional
+    public void saveSyncedDocument(TaxPortalSyncedDocument syncedDocument, boolean loadDocumentDetails) {
+        TaxPortalDocumentSummary summary = syncedDocument.summary();
+        TaxDocument document = taxDocumentRepository.findByExternalDocumentIdWithLines(summary.externalDocumentId())
+                .orElseGet(TaxDocument::new);
+        
+        applySummary(document, summary);
+
+        if (loadDocumentDetails && syncedDocument.details() != null) {
+            applyDetails(
+                    document,
+                    syncedDocument.details(),
+                    syncedDocument.versions(),
+                    syncedDocument.history(),
+                    syncedDocument.relationTree());
+        }
+
+        taxDocumentRepository.save(document);
     }
 
     private SyncProgressListener progressListener(UUID syncJobId) {
@@ -128,6 +168,12 @@ public class SyncExecutionService {
         syncJob.setPhaseMessage(message);
         log.info("Sync job {} -> phase={} message={}", syncJob.getId(), phase, message);
         syncJobRepository.save(syncJob);
+    }
+
+    private boolean isCancelled(UUID syncJobId) {
+        return syncJobRepository.findById(syncJobId)
+                .map(job -> job.getStatus() == JobStatus.CANCELLED)
+                .orElse(false);
     }
 
     private SyncJob reload(UUID syncJobId) {

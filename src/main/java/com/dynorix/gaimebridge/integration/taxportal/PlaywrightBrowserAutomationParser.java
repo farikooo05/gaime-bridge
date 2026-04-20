@@ -5,9 +5,9 @@ import com.dynorix.gaimebridge.domain.enumtype.SyncPhase;
 import com.dynorix.gaimebridge.integration.taxportal.config.BrowserAutomationProperties;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.dynorix.gaimebridge.dto.TaxpayerDto;
 import java.net.URI;
 import java.time.Instant;
-import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -28,6 +28,22 @@ public class PlaywrightBrowserAutomationParser {
     public PlaywrightBrowserAutomationParser(BrowserAutomationProperties properties, ObjectMapper objectMapper) {
         this.properties = properties;
         this.objectMapper = objectMapper;
+    }
+
+    public void startInteractiveLogin(BrowserPage page, String runtimeUsername, String runtimePassword, SyncProgressListener progressListener) {
+        var login = properties.getLogin();
+        requireConfigured(login.getUrl(), "app.tax-portal.browser.login.url");
+        
+        String loginUrl = resolveUrl(login.getUrl());
+        progressListener.onPhase(SyncPhase.OPENING_LOGIN, "Opening the portal login page.");
+        openLoginForm(page, loginUrl, login);
+        submitAsanCredentials(page, login, runtimeUsername, runtimePassword);
+        progressListener.onPhase(SyncPhase.WAITING_FOR_PHONE_CONFIRMATION, "Confirm the Asan request on your phone.");
+        
+        waitForVerificationScreen(page, login);
+        waitForPostVerificationTransition(page, login);
+        
+        log.info("Interactive login reached transition point. currentUrl={}", page.currentUrl());
     }
 
     public RawParseResult login(BrowserPage page, String runtimeUsername, String runtimePassword, SyncProgressListener progressListener) {
@@ -72,6 +88,73 @@ public class PlaywrightBrowserAutomationParser {
 
     public boolean hasAuthenticatedSession(BrowserPage page) {
         return isPortalSessionReady(page, properties.getLogin());
+    }
+
+    public List<TaxpayerDto> extractAvailableTaxpayers(BrowserPage page) {
+        // Give the page a moment to stabilize after the transition
+        waitForTaxpayerSelectionScreen(page, properties.getLogin());
+        
+        if (!isTaxpayerSelectionScreen(page)) {
+            log.warn("Not on taxpayer selection screen. Cannot extract taxpayers. URL={}", page.currentUrl());
+            return List.of();
+        }
+        
+        @SuppressWarnings("unchecked")
+        List<Map<String, String>> scraped = (List<Map<String, String>>) page.evaluate("""
+                () => {
+                  const selectors = [
+                    "a",
+                    "[role='button']",
+                    "button",
+                    "li",
+                    "div.ant-list-item",
+                    "div.company-item"
+                  ];
+                  const nodes = Array.from(document.querySelectorAll(selectors.join(",")));
+                  const results = [];
+                  const seen = new Set();
+                  
+                  nodes.forEach(node => {
+                    const text = (node.innerText || node.textContent || "").replace(/\\s+/g, " ").trim();
+                    // More flexible regex for VÖEN (supports VÖEN: 123..., VÖEN 123..., or just 10 digits in context)
+                    const matches = text.match(/(?:vöen[:\\s]*)(\\d{10})/i);
+                    if (matches) {
+                        const tin = matches[1];
+                        if (!seen.has(tin)) {
+                            seen.add(tin);
+                            results.push({
+                                legalTin: tin,
+                                companyName: text.replace(/(?:vöen[:\\s]*)?(\\d{10})/i, "").replace(/\\s+/g, " ").trim()
+                            });
+                        }
+                    }
+                  });
+                  return results;
+                }
+                """, null);
+        
+        List<TaxpayerDto> results = new ArrayList<>();
+        if (scraped != null) {
+            for (Map<String, String> item : scraped) {
+                results.add(new TaxpayerDto(item.get("legalTin"), item.get("companyName")));
+            }
+        }
+        log.info("Extracted {} taxpayers from portal.", results.size());
+        return results;
+    }
+
+    private void waitForTaxpayerSelectionScreen(BrowserPage page, BrowserAutomationProperties.Login login) {
+        long deadline = System.nanoTime() + login.getVerificationTimeout().toNanos();
+        while (System.nanoTime() < deadline) {
+            if (isTaxpayerSelectionScreen(page)) {
+                return;
+            }
+            sleep(login.getPollInterval().toMillis());
+        }
+    }
+
+    public void selectTaxpayer(BrowserPage page, String legalTin) {
+        selectTaxpayerFromVisiblePage(page, legalTin);
     }
 
     public RawParseResult parseList(BrowserPage page) {
@@ -128,9 +211,20 @@ public class PlaywrightBrowserAutomationParser {
     }
 
     private void openLoginForm(BrowserPage page, String loginUrl, BrowserAutomationProperties.Login login) {
+        log.info("Opening portal login page: {}", loginUrl);
         page.navigate(loginUrl, properties.getBrowser().getNavigationTimeout());
-        page.waitForVisible(firstNonBlank(login.getUsernameSelector(), "#phone", "input[name='phone']"), properties.getBrowser().getTimeout());
-        page.waitForVisible(firstNonBlank(login.getPasswordSelector(), "#userId", "input[name='userId']"), properties.getBrowser().getTimeout());
+        
+        String phoneSelector = firstNonBlank(login.getUsernameSelector(), "#phone", "input[name='phone']");
+        String userSelector = firstNonBlank(login.getPasswordSelector(), "#userId", "input[name='userId']");
+        
+        try {
+            page.waitForVisible(phoneSelector, properties.getBrowser().getTimeout());
+            page.waitForVisible(userSelector, properties.getBrowser().getTimeout());
+        } catch (Exception ex) {
+            log.error("Failed to locate ASAN login form. Diagnostic State -> URL: {}, Title: {}", 
+                    page.currentUrl(), page.evaluate("document.title", null));
+            throw ex;
+        }
     }
 
     private void submitAsanCredentials(
@@ -273,44 +367,43 @@ public class PlaywrightBrowserAutomationParser {
                 && !properties.getLogin().getLegalTin().isBlank()
                 && normalized.contains(properties.getLogin().getLegalTin().toLowerCase());
         return normalized.contains("vergi ödəyicisini seçin")
-                || normalized.contains("şəxsi kabinetə daxil olmaq üçün istifadə etmək istədiyiniz vergi ödəyicisini seçin")
-                || normalized.contains("vöen 2006765861");
+                || normalized.contains("şəxsi kabinetə daxil olmaq üçün istifadə etmək istədiyiniz vergi ödəyicisini seçin");
     }
 
     private void selectTaxpayerFromVisiblePage(BrowserPage page, String legalTin) {
-        Object clicked = page.evaluate("""
-                ({ legalTin }) => {
-                  const selectors = [
-                    "a",
-                    "[role='button']",
-                    "button",
-                    "li",
-                    "div"
-                  ];
+        log.info("Attempting one-click taxpayer selection for TIN: {}", legalTin);
+        Object result = page.evaluate("""
+                async ({ legalTin }) => {
+                  const sleep = ms => new Promise(r => setTimeout(r, ms));
+                  const dispatchClick = (el) => {
+                    if (!el) return;
+                    el.scrollIntoView();
+                    // Sequences mouse events to ensure the SPA registers the "choice"
+                    el.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, view: window, cancelable: true }));
+                    el.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, view: window, cancelable: true }));
+                    el.dispatchEvent(new MouseEvent('click', { bubbles: true, view: window, cancelable: true }));
+                    el.click(); // Also trigger standard click for safe measure
+                  };
+
+                  const selectors = ["li", "div.ant-list-item", "div.company-item", "a", "[role='button']"];
                   const nodes = Array.from(document.querySelectorAll(selectors.join(",")));
                   const match = nodes.find(node => {
                     const text = (node.innerText || node.textContent || "").replace(/\\s+/g, " ").trim();
                     return text.includes(legalTin) && text.length < 400;
                   });
-                  if (!match) {
-                    return false;
-                  }
-                  const clickable = match.closest("a, [role='button'], button, li, div") || match;
-                  clickable.click();
-                  for (const selector of ["button.ant-btn-primary", "button[type='submit']", "[role='button'].ant-btn-primary"]) {
-                    const button = document.querySelector(selector);
-                    if (button && button !== clickable) {
-                      button.click();
-                      break;
-                    }
-                  }
-                  return true;
+
+                  if (!match) return "NOT_FOUND";
+
+                  const clickable = match.closest("li, div, a") || match;
+                  dispatchClick(clickable);
+                  
+                  return "CLICKED_ITEM";
                 }
                 """, Map.of("legalTin", legalTin));
-        if (!Boolean.TRUE.equals(clicked)) {
-            throw new BrowserAutomationParseException("Visible taxpayer selection screen was shown, but the configured legal TIN could not be clicked.");
-        }
-        sleep(1000);
+                
+        log.info("Taxpayer selection evaluation result: {}", result);
+        // Allow time for the portal to begin redirecting
+        sleep(2000);
     }
 
     private JsonNode executeJsonRequest(BrowserPage page, String method, String url, String body) {
@@ -320,6 +413,7 @@ public class PlaywrightBrowserAutomationParser {
         args.put("body", body);
         Object rawResponse = page.evaluate("""
                 async ({ url, method, body }) => {
+                  const jwt = window.localStorage.getItem('bridge-company-jwt');
                   const options = {
                     method,
                     credentials: 'include',
@@ -327,6 +421,10 @@ public class PlaywrightBrowserAutomationParser {
                       'Accept': 'application/json'
                     }
                   };
+                  if (jwt) {
+                    options.headers['Authorization'] = 'Bearer ' + jwt;
+                    options.headers['x-authorization'] = jwt;
+                  }
                   if (body !== null && body !== undefined && body !== '') {
                     options.headers['Content-Type'] = 'application/json';
                     options.body = body;

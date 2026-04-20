@@ -9,6 +9,7 @@ import com.dynorix.gaimebridge.exception.ResourceNotFoundException;
 import com.dynorix.gaimebridge.repository.SyncJobRepository;
 import com.dynorix.gaimebridge.service.SyncOrchestratorService;
 import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionSynchronization;
@@ -31,7 +32,19 @@ public class SyncOrchestratorServiceImpl implements SyncOrchestratorService {
 
     @Override
     @Transactional
-    public SyncJobResponse startSync(SyncRequest request, String initiatedBy) {
+    public synchronized SyncJobResponse startSync(SyncRequest request, String initiatedBy) {
+        // Prevent concurrent sync jobs
+        var activeJob = syncJobRepository.findFirstByStatusInOrderByCreatedAtDesc(List.of(JobStatus.RUNNING, JobStatus.QUEUED));
+        
+        if (activeJob.isPresent()) {
+            throw new IllegalStateException("Another sync job is already active: " + activeJob.get().getId());
+        }
+
+        // If this was just a check for active jobs, we're done (no job is currently active)
+        if (Boolean.TRUE.equals(request.dryRun())) {
+            return null;
+        }
+
         SyncJob syncJob = new SyncJob();
         syncJob.setStatus(JobStatus.RUNNING);
         syncJob.setRequestedBy(initiatedBy);
@@ -55,6 +68,22 @@ public class SyncOrchestratorServiceImpl implements SyncOrchestratorService {
                 .orElseThrow(() -> new ResourceNotFoundException("Sync job not found: " + jobId));
     }
 
+    @Override
+    @Transactional
+    public SyncJobResponse stopJob(UUID jobId) {
+        SyncJob syncJob = syncJobRepository.findById(jobId)
+                .orElseThrow(() -> new ResourceNotFoundException("Sync job not found: " + jobId));
+
+        if (syncJob.getStatus() == JobStatus.RUNNING || syncJob.getStatus() == JobStatus.QUEUED) {
+            syncJob.setStatus(JobStatus.CANCELLED);
+            syncJob.setFinishedAt(OffsetDateTime.now());
+            syncJob.setPhaseMessage("Sync stopped by user.");
+            syncJobRepository.save(syncJob);
+        }
+
+        return toResponse(syncJob);
+    }
+
     private SyncJobResponse toResponse(SyncJob syncJob) {
         return new SyncJobResponse(
                 syncJob.getId(),
@@ -66,6 +95,11 @@ public class SyncOrchestratorServiceImpl implements SyncOrchestratorService {
                 syncJob.getStartedAt(),
                 syncJob.getFinishedAt(),
                 syncJob.getErrorMessage());
+    }
+
+    @Override
+    public com.dynorix.gaimebridge.dto.AuthStatusResponse checkPortalSession() {
+        return syncExecutionService.checkPortalSession();
     }
 
     private void scheduleAsyncSync(UUID syncJobId, SyncRequest request) {

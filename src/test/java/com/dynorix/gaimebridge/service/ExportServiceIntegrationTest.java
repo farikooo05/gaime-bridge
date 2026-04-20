@@ -90,7 +90,7 @@ class ExportServiceIntegrationTest {
         TaxDocument saved = taxDocumentRepository.save(document);
 
         ExportJobResponse response = exportService.createExport(
-                new ExportRequest(ExportFormat.JSON, List.of(saved.getId())),
+                new ExportRequest(ExportFormat.JSON, List.of(saved.getId()), null),
                 "test-user");
 
         assertThat(response.status()).isEqualTo(JobStatus.COMPLETED);

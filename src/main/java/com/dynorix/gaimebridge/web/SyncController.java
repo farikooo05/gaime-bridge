@@ -32,4 +32,9 @@ public class SyncController {
     public SyncJobResponse getJob(@PathVariable UUID jobId) {
         return syncOrchestratorService.getJob(jobId);
     }
+
+    @PostMapping("/jobs/{jobId}/stop")
+    public SyncJobResponse stopJob(@PathVariable UUID jobId) {
+        return syncOrchestratorService.stopJob(jobId);
+    }
 }

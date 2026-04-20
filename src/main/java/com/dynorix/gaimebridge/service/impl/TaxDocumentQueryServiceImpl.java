@@ -36,15 +36,17 @@ public class TaxDocumentQueryServiceImpl implements TaxDocumentQueryService {
 
     @Override
     public DocumentDetailResponse getDocument(UUID id) {
-        TaxDocument document = taxDocumentRepository.findById(id)
+        TaxDocument document = taxDocumentRepository.findByIdWithLines(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Tax document not found: " + id));
         return toDetailResponse(document);
     }
 
     @Override
     public DocumentDetailResponse getDocumentByNumber(String documentNumber) {
-        TaxDocument document = taxDocumentRepository.findFirstByDocumentNumberOrderByDocumentDateDesc(documentNumber)
-                .orElseThrow(() -> new ResourceNotFoundException("Tax document not found by number: " + documentNumber));
+        TaxDocument document = taxDocumentRepository.findByDocumentNumberWithLines(documentNumber)
+                .stream().findFirst()
+                .orElseThrow(
+                        () -> new ResourceNotFoundException("Tax document not found by number: " + documentNumber));
         return toDetailResponse(document);
     }
 
@@ -53,13 +55,13 @@ public class TaxDocumentQueryServiceImpl implements TaxDocumentQueryService {
             List<Predicate> predicates = new ArrayList<>();
 
             if (request.documentNumber() != null && !request.documentNumber().isBlank()) {
-                predicates.add(cb.like(cb.lower(root.get("documentNumber")), "%" + request.documentNumber().toLowerCase() + "%"));
+                predicates.add(cb.like(cb.lower(root.get("documentNumber")),
+                        "%" + request.documentNumber().toLowerCase() + "%"));
             }
             if (request.counterpartyTaxId() != null && !request.counterpartyTaxId().isBlank()) {
                 predicates.add(cb.or(
                         cb.equal(root.get("seller").get("taxId"), request.counterpartyTaxId()),
-                        cb.equal(root.get("buyer").get("taxId"), request.counterpartyTaxId())
-                ));
+                        cb.equal(root.get("buyer").get("taxId"), request.counterpartyTaxId())));
             }
             if (request.portalStatus() != null && !request.portalStatus().isBlank()) {
                 predicates.add(cb.equal(root.get("portalStatus"), request.portalStatus()));

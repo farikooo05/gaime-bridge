@@ -4,7 +4,10 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Dynorix Gaimə Bridge</title>
-    <link rel="stylesheet" href="/ui/operator.css?v=20260402b">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/ui/operator.css?v=20260417_1922">
 </head>
 <body>
 <main class="layout">
@@ -12,58 +15,138 @@
         <div>
             <p class="eyebrow">Real Portal Mode</p>
             <h1>Bring Your e-Qaimə Documents Into Dynorix</h1>
-            <p class="subtitle">Enter your Asan phone and user ID here, confirm on your phone, choose your company in the opened portal window, and then continue with your real documents inside this app.</p>
+            <p class="subtitle">Complete the ASAN Imza verification natively. Your data stays secure as we connect directly to the Azerbaijan e-Taxes portal.</p>
         </div>
         <div class="hero-card">
             <div class="metric">
-                <span class="metric-label">Flow</span>
-                <strong>login -> confirm -> choose company -> documents</strong>
+                <span class="metric-label">Efficiency</span>
+                <strong>Headless Sync</strong>
             </div>
             <div class="metric">
-                <span class="metric-label">Portal</span>
-                <strong>new.e-taxes.gov.az</strong>
+                <span class="metric-label">Status</span>
+                <strong id="connection-status">Disconnected</strong>
             </div>
             <div class="metric">
-                <span class="metric-label">Data</span>
-                <strong>real e-Qaimə sync</strong>
+                <div class="metric-top">
+                    <span class="metric-label">Session Life</span>
+                    <button id="logout-button" class="mini-icon hidden" title="Logout / Fresh Session">🔄</button>
+                </div>
+                <strong id="session-life">N/A</strong>
+            </div>
+            <div class="metric">
+                <span class="metric-label">Security</span>
+                <strong>ASAN Verified</strong>
             </div>
         </div>
     </section>
 
     <section class="panel auth-panel">
-        <div>
-            <h2>Portal Login</h2>
-            <p>Use your real Asan credentials. The browser window will open for confirmation and company selection, then Dynorix will continue loading documents automatically.</p>
+        <div class="panel-intro">
+            <h2>Portal Authentication</h2>
+            <p>Enter your credentials to start the secure session. You will select your company in the next step.</p>
         </div>
         <form id="portal-form" class="portal-form">
             <label>
-                <span>Phone without +994</span>
-                <input id="portal-phone" name="portalPhone" type="hidden" value="515235297">
-                <strong>515235297</strong>
+                <span>Phone (no +994)</span>
+                <input id="portal-phone" name="portalPhone" type="text" placeholder="515235297" value="515235297" required>
             </label>
             <label>
-                <span>Asan user ID</span>
-                <input id="portal-user-id" name="portalUserId" type="hidden" value="200586">
-                <strong>200586</strong>
+                <span>Asan User ID</span>
+                <input id="portal-user-id" name="portalUserId" type="text" placeholder="200586" value="200586" required>
             </label>
             <label>
-                <span>Date from</span>
+                <span>Date From</span>
                 <input id="date-from" name="dateFrom" type="date" required>
             </label>
             <label>
-                <span>Date to</span>
+                <span>Date To</span>
                 <input id="date-to" name="dateTo" type="date" required>
             </label>
             <label class="checkbox-field">
                 <input id="load-details" name="loadDocumentDetails" type="checkbox" checked>
-                <span>Load document details and line items</span>
+                <span>Include Line Items</span>
             </label>
             <div class="form-actions">
-                <button id="connect-button" type="submit">Connect and Load Documents</button>
+                <button id="connect-button" type="submit">Start Authentication</button>
+                <button id="clear-history-button" type="button" class="error ghost">Wipe Sync History</button>
+                <button id="stop-sync-button" type="button" class="error hidden">Stop Sync</button>
             </div>
         </form>
-        <div id="status-banner" class="status-banner neutral">Ready to start a real portal session.</div>
+        <div id="status-banner" class="status-banner neutral">Ready to authenticate.</div>
     </section>
+
+    <!-- Taxpayer Selection Modal -->
+    <div id="taxpayer-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Select Company</h3>
+                <p>Choose the taxpayer you want to sync documents from.</p>
+            </div>
+            <div id="taxpayer-list" class="taxpayer-list">
+                <!-- Dynamically filled -->
+            </div>
+            <div class="modal-actions">
+                <button id="close-modal-button" class="ghost">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Column Selection Modal -->
+    <div id="column-modal" class="modal-overlay hidden">
+        <div class="modal-content" style="width: min(800px, calc(100% - 40px));">
+            <div class="modal-header">
+                <h3>Export Columns</h3>
+                <p>Select the columns you want to include in your Excel export.</p>
+            </div>
+            <div class="column-grid">
+                <div class="column-category">
+                    <h4>General</h4>
+                    <label class="checkbox-field"><input type="checkbox" value="doc_number" checked> <span>Sənəd Nömrəsi</span></label>
+                    <label class="checkbox-field"><input type="checkbox" value="doc_date" checked> <span>Tarix</span></label>
+                    <label class="checkbox-field"><input type="checkbox" value="direction" checked> <span>İstiqamət</span></label>
+                    <label class="checkbox-field"><input type="checkbox" value="doc_type" checked> <span>Növ</span></label>
+                    <label class="checkbox-field"><input type="checkbox" value="status" checked> <span>Status</span></label>
+                    <label class="checkbox-field"><input type="checkbox" value="portal_id" checked> <span>İnvoys ID (Portal)</span></label>
+                </div>
+                <div class="column-category">
+                    <h4>Parties</h4>
+                    <label class="checkbox-field"><input type="checkbox" value="seller_tin" checked> <span>Satıcı VÖEN</span></label>
+                    <label class="checkbox-field"><input type="checkbox" value="seller_name" checked> <span>Satıcı Adı</span></label>
+                    <label class="checkbox-field"><input type="checkbox" value="buyer_tin" checked> <span>Alıcı VÖEN</span></label>
+                    <label class="checkbox-field"><input type="checkbox" value="buyer_name" checked> <span>Alıcı Adı</span></label>
+                </div>
+                <div class="column-category">
+                    <h4>Items</h4>
+                    <label class="checkbox-field"><input type="checkbox" value="product_name" checked> <span>Malın adı</span></label>
+                    <label class="checkbox-field"><input type="checkbox" value="product_code" checked> <span>Məhsulun Kodu</span></label>
+                    <label class="checkbox-field"><input type="checkbox" value="gtin" checked> <span>GTIN</span></label>
+                    <label class="checkbox-field"><input type="checkbox" value="unit" checked> <span>Ölçü Vahidi</span></label>
+                    <label class="checkbox-field"><input type="checkbox" value="quantity" checked> <span>Miqdar</span></label>
+                    <label class="checkbox-field"><input type="checkbox" value="price" checked> <span>Qiymət</span></label>
+                </div>
+                <div class="column-category">
+                    <h4>Financials</h4>
+                    <label class="checkbox-field"><input type="checkbox" value="line_net" checked> <span>Məbləğ (ƏDV-siz)</span></label>
+                    <label class="checkbox-field"><input type="checkbox" value="vat_rate" checked> <span>ƏDV Dərəcəsi</span></label>
+                    <label class="checkbox-field"><input type="checkbox" value="line_vat" checked> <span>ƏDV Məbləği</span></label>
+                    <label class="checkbox-field"><input type="checkbox" value="line_total" checked> <span>Yekun Məbləğ (Sətir)</span></label>
+                    <label class="checkbox-field"><input type="checkbox" value="currency" checked> <span>Valyuta</span></label>
+                    <label class="checkbox-field"><input type="checkbox" value="total_amount" checked> <span>Cəmi Məbləğ (Sənəd üzrə)</span></label>
+                </div>
+                <div class="column-category">
+                    <h4>Metadata</h4>
+                    <label class="checkbox-field"><input type="checkbox" value="base_note" checked> <span>Əsas Qeyd</span></label>
+                    <label class="checkbox-field"><input type="checkbox" value="add_note" checked> <span>Əlavə Qeyd</span></label>
+                    <label class="checkbox-field"><input type="checkbox" value="portal_url" checked> <span>Portal Linki</span></label>
+                    <label class="checkbox-field"><input type="checkbox" value="portal_created"> <span>Portal Yaradılma</span></label>
+                </div>
+            </div>
+            <div class="modal-actions" style="margin-top: 32px; gap: 12px;">
+                <button id="reset-columns-button" class="ghost">Reset Defaults</button>
+                <button id="save-columns-button">Save Preferences</button>
+            </div>
+        </div>
+    </div>
 
     <section class="panel journey-panel">
         <div class="panel-header">
@@ -96,6 +179,9 @@
         </div>
         <div id="journey-note" class="journey-note">
             Start by entering your real portal credentials above.
+        </div>
+        <div class="panel-actions" style="margin-top: 24px;">
+            <button id="stop-sync-button-alt" type="button" class="error hidden" style="width: 100%;">Stop Current Synchronization</button>
         </div>
     </section>
 
@@ -156,7 +242,15 @@
                 <div class="actions">
                     <button id="select-visible-button" type="button" class="secondary">Select visible</button>
                     <button id="clear-selection-button" type="button" class="ghost">Clear selection</button>
-                    <button id="export-button" type="button" disabled>Export JSON</button>
+                    <div class="export-group">
+                        <button id="export-settings-button" type="button" class="ghost">⚙️</button>
+                        <select id="export-format" class="format-select">
+                            <option value="JSON">JSON</option>
+                            <option value="XML">XML</option>
+                            <option value="XLSX">Excel (XLSX)</option>
+                        </select>
+                        <button id="export-button" type="button" disabled>Export</button>
+                    </div>
                 </div>
             </div>
 
@@ -180,6 +274,17 @@
                     </tr>
                     </tbody>
                 </table>
+            </div>
+
+            <div class="pagination-wrap">
+                <div class="pagination-info">
+                    Showing <span id="pagination-range">0-0</span> of <span id="pagination-total">0</span>
+                </div>
+                <div class="pagination-actions">
+                    <button id="prev-page-button" class="ghost" disabled>Previous</button>
+                    <span id="current-page-label">Page 1</span>
+                    <button id="next-page-button" class="ghost" disabled>Next</button>
+                </div>
             </div>
         </section>
 
@@ -207,6 +312,21 @@
     </section>
 </main>
 
-<script src="/ui/operator.js?v=20260402b"></script>
+    <!-- Confirm Delete Modal -->
+    <div id="confirm-modal" class="modal-overlay hidden">
+        <div class="modal-content confirm-dialog">
+            <div class="modal-header">
+                <div class="warning-icon">⚠️</div>
+                <h3>Wipe Sync History?</h3>
+                <p>This will permanently delete ALL synchronized documents from your local database. You will need to run a fresh sync to see them again.</p>
+            </div>
+            <div class="modal-actions gap-16">
+                <button id="cancel-confirm-button" class="ghost">Cancel</button>
+                <button id="execute-confirm-button" class="error">Yes, Wipe Data</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/ui/operator.js?v=20260417_1936"></script>
 </body>
 </html>

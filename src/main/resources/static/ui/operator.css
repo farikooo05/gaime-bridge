@@ -1,15 +1,15 @@
 :root {
-    --bg: #f4f1ea;
-    --panel: rgba(255, 255, 255, 0.9);
-    --ink: #1e2430;
-    --muted: #697385;
-    --accent: #0f7b6c;
-    --accent-strong: #0a5c52;
-    --line: rgba(30, 36, 48, 0.12);
-    --warn: #b45309;
-    --error: #b42318;
-    --ok: #0b7a4b;
-    --shadow: 0 18px 40px rgba(28, 35, 47, 0.08);
+    --bg: #020617;
+    --panel: #0f172a;
+    --ink: #f8fafc;
+    --muted: #94a3b8;
+    --accent: #2563eb;
+    --accent-strong: #3b82f6;
+    --line: #1e293b;
+    --warn: #f59e0b;
+    --error: #ef4444;
+    --ok: #10b981;
+    --shadow: 0 18px 40px rgba(0, 0, 0, 0.4);
 }
 
 * {
@@ -18,12 +18,13 @@
 
 body {
     margin: 0;
-    font-family: "Segoe UI", "Helvetica Neue", sans-serif;
+    font-family: 'Outfit', "Segoe UI", "Helvetica Neue", sans-serif;
     color: var(--ink);
     background:
-            radial-gradient(circle at top left, rgba(15, 123, 108, 0.15), transparent 30%),
-            radial-gradient(circle at top right, rgba(201, 123, 33, 0.10), transparent 24%),
-            linear-gradient(180deg, #f8f7f3 0%, var(--bg) 100%);
+            radial-gradient(circle at top left, rgba(37, 99, 235, 0.15), transparent 35%),
+            radial-gradient(circle at top right, rgba(99, 102, 241, 0.12), transparent 28%),
+            linear-gradient(180deg, #020617 0%, #0f172a 100%);
+    min-height: 100vh;
 }
 
 .layout {
@@ -54,7 +55,7 @@ body {
     margin: 0 0 12px;
     padding: 6px 10px;
     border-radius: 999px;
-    background: rgba(15, 123, 108, 0.12);
+    background: rgba(37, 99, 235, 0.2);
     color: var(--accent-strong);
     font-size: 12px;
     font-weight: 700;
@@ -65,15 +66,18 @@ body {
 h1,
 h2 {
     margin: 0;
+    color: white;
 }
 
 h1 {
     font-size: clamp(2rem, 3vw, 3.2rem);
     line-height: 1.05;
+    font-weight: 700;
 }
 
 h2 {
     font-size: 1.15rem;
+    font-weight: 700;
 }
 
 .subtitle,
@@ -89,8 +93,7 @@ label span,
 .hero-card,
 .panel {
     background: var(--panel);
-    backdrop-filter: blur(14px);
-    border: 1px solid rgba(255, 255, 255, 0.55);
+    border: 1px solid var(--line);
     box-shadow: var(--shadow);
     border-radius: 20px;
 }
@@ -104,8 +107,8 @@ label span,
 .metric {
     padding: 14px;
     border-radius: 14px;
-    background: rgba(15, 123, 108, 0.06);
-    border: 1px solid rgba(15, 123, 108, 0.12);
+    background: rgba(30, 41, 59, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .metric-label {
@@ -118,7 +121,7 @@ label span,
 }
 
 .panel {
-    padding: 20px;
+    padding: 24px;
     margin-bottom: 20px;
 }
 
@@ -157,6 +160,8 @@ label {
 
 label span {
     font-size: 0.88rem;
+    font-weight: 600;
+    color: #cbd5e1;
 }
 
 .checkbox-field {
@@ -190,14 +195,21 @@ select {
     padding: 11px 12px;
     border-radius: 12px;
     border: 1px solid var(--line);
-    background: rgba(255, 255, 255, 0.94);
+    background: #1e293b;
     color: var(--ink);
+    outline: none;
+    transition: all 0.2s;
+}
+
+input:focus, select:focus {
+    border-color: var(--accent);
+    background: #0f172a;
 }
 
 button {
     border: 0;
     border-radius: 12px;
-    padding: 11px 16px;
+    padding: 11px 20px;
     background: var(--accent);
     color: white;
     font-weight: 700;
@@ -208,6 +220,7 @@ button {
 button:hover:not(:disabled) {
     transform: translateY(-1px);
     background: var(--accent-strong);
+    box-shadow: 0 4px 15px rgba(37, 99, 235, 0.4);
 }
 
 button:disabled {
@@ -216,14 +229,22 @@ button:disabled {
 }
 
 button.secondary {
-    background: #d9ece7;
-    color: var(--accent-strong);
+    background: #1e293b;
+    color: #f1f5f9;
+}
+
+button.secondary:hover {
+    background: #334155;
 }
 
 button.ghost {
     background: transparent;
-    color: var(--ink);
+    color: #f1f5f9;
     border: 1px solid var(--line);
+}
+
+button.ghost:hover {
+    background: rgba(255, 255, 255, 0.05);
 }
 
 .status-banner {
@@ -233,21 +254,22 @@ button.ghost {
 }
 
 .status-banner.neutral {
-    background: rgba(105, 115, 133, 0.08);
+    background: rgba(30, 41, 59, 1);
+    color: var(--muted);
 }
 
 .status-banner.success {
-    background: rgba(11, 122, 75, 0.12);
+    background: rgba(16, 185, 129, 0.1);
     color: var(--ok);
 }
 
 .status-banner.error {
-    background: rgba(180, 35, 24, 0.12);
+    background: rgba(239, 68, 68, 0.1);
     color: var(--error);
 }
 
 .status-banner.warning {
-    background: rgba(180, 83, 9, 0.12);
+    background: rgba(245, 158, 11, 0.1);
     color: var(--warn);
 }
 
@@ -266,13 +288,16 @@ button.ghost {
     padding: 14px;
     border-radius: 16px;
     border: 1px solid var(--line);
-    background: rgba(255, 255, 255, 0.72);
+    background: rgba(15, 23, 42, 0.6);
     display: grid;
     gap: 6px;
+    transition: all 0.3s ease;
 }
 
 .step strong {
     font-size: 0.95rem;
+    font-weight: 700;
+    color: #e2e8f0;
 }
 
 .step span {
@@ -281,19 +306,19 @@ button.ghost {
 }
 
 .step.active {
-    border-color: rgba(15, 123, 108, 0.24);
-    background: rgba(15, 123, 108, 0.10);
+    border-color: var(--accent);
+    background: rgba(37, 99, 235, 0.1);
 }
 
 .step.done {
-    border-color: rgba(11, 122, 75, 0.18);
-    background: rgba(11, 122, 75, 0.08);
+    border-color: rgba(16, 185, 129, 0.2);
+    background: rgba(16, 185, 129, 0.05);
 }
 
 .journey-note {
     padding: 14px 16px;
     border-radius: 16px;
-    background: rgba(30, 36, 48, 0.04);
+    background: rgba(0, 0, 0, 0.2);
 }
 
 .hidden {
@@ -307,27 +332,33 @@ button.ghost {
 .table-wrap {
     overflow-x: auto;
     margin-top: 16px;
+    border-radius: 12px;
+    border: 1px solid var(--line);
+    background: #0b1120;
 }
 
 table {
     width: 100%;
     border-collapse: collapse;
     min-width: 980px;
+    font-size: 0.9rem;
 }
 
 th,
 td {
-    padding: 14px 12px;
+    padding: 16px;
     border-bottom: 1px solid var(--line);
     text-align: left;
-    vertical-align: top;
+    vertical-align: middle;
 }
 
 th {
-    font-size: 0.82rem;
-    color: var(--muted);
+    font-size: 0.75rem;
+    color: #64748b;
     text-transform: uppercase;
-    letter-spacing: 0.04em;
+    letter-spacing: 0.08em;
+    font-weight: 700;
+    background: #0f172a;
 }
 
 tbody tr {
@@ -335,11 +366,11 @@ tbody tr {
 }
 
 tbody tr:hover {
-    background: rgba(15, 123, 108, 0.05);
+    background: rgba(255, 255, 255, 0.03);
 }
 
 tbody tr.active {
-    background: rgba(15, 123, 108, 0.08);
+    background: rgba(37, 99, 235, 0.12);
 }
 
 .row-clickable {
@@ -348,11 +379,18 @@ tbody tr.active {
 
 .counterparty {
     display: grid;
-    gap: 4px;
+    gap: 2px;
 }
 
 .counterparty strong {
-    font-size: 0.95rem;
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #f1f5f9;
+}
+
+.counterparty span {
+    font-size: 0.75rem;
+    color: var(--muted);
 }
 
 .tag {
@@ -360,31 +398,31 @@ tbody tr.active {
     align-items: center;
     gap: 6px;
     border-radius: 999px;
-    padding: 6px 10px;
-    font-size: 12px;
+    padding: 4px 10px;
+    font-size: 11px;
     font-weight: 700;
-    background: rgba(15, 123, 108, 0.10);
-    color: var(--accent-strong);
+    background: rgba(37, 99, 235, 0.15);
+    color: #60a5fa;
 }
 
 .tag.outgoing {
-    background: rgba(201, 123, 33, 0.12);
-    color: #8a5309;
+    background: rgba(99, 102, 241, 0.2);
+    color: #818cf8;
 }
 
 .preview-card {
     margin-top: 16px;
     min-height: 240px;
-    padding: 16px;
+    padding: 24px;
     border-radius: 16px;
     border: 1px dashed var(--line);
-    background: rgba(255, 255, 255, 0.54);
+    background: rgba(0, 0, 0, 0.15);
 }
 
 .preview-grid,
 .line-items {
     display: grid;
-    gap: 12px;
+    gap: 16px;
 }
 
 .preview-grid {
@@ -392,29 +430,37 @@ tbody tr.active {
 }
 
 .field {
-    padding: 12px;
-    border-radius: 14px;
-    background: rgba(15, 123, 108, 0.05);
+    padding: 14px;
+    border-radius: 12px;
+    background: #1e293b;
+    border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .field-label {
     display: block;
-    font-size: 12px;
+    font-size: 11px;
     text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: var(--muted);
-    margin-bottom: 6px;
+    letter-spacing: 0.06em;
+    color: #64748b;
+    margin-bottom: 4px;
+    font-weight: 700;
 }
 
 .line-items {
-    margin-top: 16px;
+    margin-top: 20px;
 }
 
 .line-item {
-    padding: 12px;
-    border-radius: 14px;
+    padding: 16px;
+    border-radius: 12px;
     border: 1px solid var(--line);
-    background: rgba(255, 255, 255, 0.8);
+    background: rgba(30, 41, 59, 0.3);
+    transition: transform 0.2s;
+}
+
+.line-item:hover {
+    transform: translateX(4px);
+    border-color: var(--accent);
 }
 
 .inline-actions {
@@ -426,12 +472,77 @@ tbody tr.active {
 
 .empty-state {
     color: var(--muted);
+    text-align: center;
+    padding: 40px;
 }
 
 code {
     padding: 2px 6px;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.05);
+    font-size: 0.85em;
+    color: #93c5fd;
+}
+
+/* Functional Extras */
+.spinner {
+    width: 24px;
+    height: 24px;
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.metric-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.mini-icon {
+    padding: 4px 8px;
+    font-size: 0.75rem;
     border-radius: 8px;
-    background: rgba(30, 36, 48, 0.06);
+}
+
+/* Modal Enhancements */
+.modal-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(12px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.modal-content {
+    background: #0f172a;
+    padding: 32px;
+    border-radius: 24px;
+    width: 600px;
+    max-width: calc(100% - 40px);
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
+    border: 1px solid var(--line);
+}
+
+.taxpayer-item {
+    padding: 16px;
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.taxpayer-item:hover {
+    background: rgba(37, 99, 235, 0.1);
+    border-color: var(--accent);
+    transform: scale(1.01);
 }
 
 @media (max-width: 1100px) {
@@ -448,12 +559,16 @@ code {
     }
 
     .steps {
-        grid-template-columns: 1fr;
+        grid-template-columns: repeat(2, 1fr);
     }
 }
 
 @media (max-width: 820px) {
     .preview-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .steps {
         grid-template-columns: 1fr;
     }
 }

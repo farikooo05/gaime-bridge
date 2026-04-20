@@ -75,7 +75,7 @@ app:
         legal-tin: ${TAX_PORTAL_LEGAL_TIN:}
         poll-interval: ${TAX_PORTAL_POLL_INTERVAL:2s}
         verification-timeout: ${TAX_PORTAL_VERIFICATION_TIMEOUT:3m}
-        home-url: ${TAX_PORTAL_HOME_URL:}
+        home-url: ${TAX_PORTAL_HOME_URL:/eportal/}
         home-success-selector: ${TAX_PORTAL_HOME_SUCCESS_SELECTOR:}
       api:
         source-system: ${TAX_PORTAL_SOURCE_SYSTEM:avis}

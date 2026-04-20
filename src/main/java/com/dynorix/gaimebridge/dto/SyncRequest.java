@@ -11,6 +11,7 @@ public record SyncRequest(
         DocumentDirection direction,
         @NotNull LocalDate dateFrom,
         @NotNull LocalDate dateTo,
-        boolean loadDocumentDetails
+        Boolean loadDocumentDetails,
+        Boolean dryRun
 ) {
 }

@@ -9,4 +9,8 @@ public interface SyncOrchestratorService {
     SyncJobResponse startSync(SyncRequest request, String initiatedBy);
 
     SyncJobResponse getJob(UUID jobId);
+
+    SyncJobResponse stopJob(UUID jobId);
+
+    com.dynorix.gaimebridge.dto.AuthStatusResponse checkPortalSession();
 }

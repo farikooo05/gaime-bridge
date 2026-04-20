@@ -8,5 +8,6 @@ public enum SyncPhase {
     LOADING_DOCUMENTS,
     PERSISTING_DOCUMENTS,
     COMPLETED,
-    FAILED
+    FAILED,
+    CANCELLED
 }

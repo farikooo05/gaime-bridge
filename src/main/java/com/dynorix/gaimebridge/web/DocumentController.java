@@ -7,7 +7,6 @@ import com.dynorix.gaimebridge.dto.PageResponse;
 import com.dynorix.gaimebridge.service.TaxDocumentQueryService;
 import java.util.UUID;
 
-import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.validation.annotation.Validated;
